@@ -4,7 +4,8 @@
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea
 from PyQt5.QtCore import Qt, QRect, QPoint
-from PyQt5.QtGui import QPixmap, QPainter, QPen, QColor, QMouseEvent, QPaintEvent
+from PyQt5.QtGui import QPixmap, QPainter, QPen, QColor, QMouseEvent, QPaintEvent, QDragEnterEvent, QDropEvent
+from PyQt5.QtCore import QMimeData
 
 
 class ImageViewer(QScrollArea):
@@ -30,6 +31,7 @@ class ImageViewer(QScrollArea):
         
         # 드래그 앤 드롭 설정
         self.setMouseTracking(True)
+        self.setAcceptDrops(True)
         
     def load_image(self, file_path):
         """이미지 파일 로드"""
@@ -94,3 +96,25 @@ class ImageViewer(QScrollArea):
         """선택 영역 초기화"""
         self.selection_rect = None
         self.update()
+        
+    def dragEnterEvent(self, event: QDragEnterEvent):
+        """드래그 진입 이벤트"""
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+            
+    def dropEvent(self, event: QDropEvent):
+        """드롭 이벤트"""
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            if urls:
+                file_path = urls[0].toLocalFile()
+                # 이미지 파일인지 확인
+                if file_path.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif', '.gif')):
+                    if self.load_image(file_path):
+                        # 메인 윈도우에 파일 경로 알림 (시그널 필요)
+                        print(f"드롭된 파일: {file_path}")
+                    else:
+                        print(f"이미지 로드 실패: {file_path}")
+                else:
+                    print(f"지원하지 않는 파일 형식: {file_path}")
+            event.acceptProposedAction()

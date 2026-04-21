@@ -5,7 +5,7 @@
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QToolBar, QAction, QStatusBar, QTableWidget, QTableWidgetItem,
-    QFileDialog, QMessageBox
+    QFileDialog, QMessageBox, QApplication
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap
