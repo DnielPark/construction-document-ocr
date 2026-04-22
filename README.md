@@ -67,15 +67,42 @@ pip install --upgrade easyocr
 - 선택 영역 OCR 사용
 
 ## 사용법
+
+### CLI 버전 (권장 - 배치 처리)
+
+#### 폴더 단위 배치 처리
+```bash
+# sample_data/ 폴더의 모든 이미지 처리
+python src/cli.py sample_data/
+
+# 출력 폴더 지정
+python src/cli.py sample_data/ -o results/
+```
+
+#### 단일 파일 테스트
+```bash
+python src/cli.py -f sample_data/sample_001.png
+```
+
+#### 출력 구조
+```
+output/
+ ├── sample_001.csv
+ ├── sample_002.csv
+ └── sample_003.csv
+```
+
+### GUI 버전 (시각적 편집)
+
 ```bash
 python src/main.py
 ```
 
-1. 파일 선택 또는 클립보드 붙여넣기로 이미지 로드
-2. 드래그로 텍스트 영역 선택
+1. 파일 선택으로 이미지 로드
+2. 드래그로 텍스트 영역 선택 (선택적)
 3. OCR 실행 버튼 클릭
 4. 우측 테이블에서 결과 확인
-5. Excel 저장 버튼으로 내보내기
+5. Excel 저장 버튼으로 내보내기 (Week 4 구현)
 
 ## 프로젝트 구조
 ```
