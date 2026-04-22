@@ -142,26 +142,26 @@ class MainWindow(QMainWindow):
                 raise ValueError("이미지를 읽을 수 없습니다.")
             
             # OCR 엔진 초기화 (첫 실행 시)
-            if not hasattr(self, 'deepseek_engine'):
-                from ocr.deepseek_engine import DeepSeekEngine
-                from config import DEEPSEEK_API_KEY
-                self.status_bar.showMessage("DeepSeek Vision 엔진 초기화 중...")
+            if not hasattr(self, 'claude_engine'):
+                from ocr.claude_engine import ClaudeEngine
+                from config import CLAUDE_API_KEY
+                self.status_bar.showMessage("Claude Vision 엔진 초기화 중...")
                 QApplication.processEvents()
-                self.deepseek_engine = DeepSeekEngine(DEEPSEEK_API_KEY)
+                self.claude_engine = ClaudeEngine(CLAUDE_API_KEY)
             
-            self.status_bar.showMessage("DeepSeek Vision으로 표 추출 중...")
+            self.status_bar.showMessage("Claude Vision으로 표 추출 중...")
             QApplication.processEvents()
             
-            # DeepSeek Vision으로 표 추출
+            # Claude Vision으로 표 추출
             try:
-                table_data = self.deepseek_engine.extract_table_from_array(image_array)
+                table_data = self.claude_engine.extract_table_from_array(image_array)
                 
                 # 테이블에 표시
-                self.display_deepseek_results(table_data)
+                self.display_claude_results(table_data)
                 
                 self.status_bar.showMessage(f"표 추출 완료! {len(table_data)}개 측점 인식됨")
             except Exception as e:
-                QMessageBox.critical(self, "표 추출 오류", f"DeepSeek Vision 처리 중 오류 발생:\n{str(e)}")
+                QMessageBox.critical(self, "표 추출 오류", f"Claude Vision 처리 중 오류 발생:\n{str(e)}")
                 self.status_bar.showMessage("표 추출 실패")
                 
         except Exception as e:
@@ -202,8 +202,8 @@ class MainWindow(QMainWindow):
             f"OCR 완료! {len(results)}개 텍스트 인식, {len(aligned_rows)}개 행 파싱됨"
         )
         
-    def display_deepseek_results(self, table_data):
-        """DeepSeek Vision 결과를 테이블에 표시"""
+    def display_claude_results(self, table_data):
+        """Claude Vision 결과를 테이블에 표시"""
         self.data_table.clear_table()
         
         for item in table_data:

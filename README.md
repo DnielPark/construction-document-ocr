@@ -1,25 +1,25 @@
 # CM 현장 문서 OCR 프로그램
 
 하수관로 공사 수량표를 자동으로 인식하여 Excel 데이터로 변환하는 CLI 프로그램입니다.
-**DeepSeek Vision API**를 사용하여 이미지에서 직접 표 데이터를 추출합니다.
+**Claude 3.5 Sonnet Vision API**를 사용하여 이미지에서 직접 표 데이터를 추출합니다.
 
 ## 🔑 API 키 발급 (필수)
 
-### 1. DeepSeek 플랫폼 가입
-https://platform.deepseek.com
+### 1. Anthropic 콘솔 가입
+https://console.anthropic.com
 
 ### 2. API 키 발급
-1. 로그인 후 "API Keys" 메뉴
-2. "Create new secret key" 클릭
+1. 로그인 후 "Get API Keys" 메뉴
+2. "Create Key" 클릭
 3. 키 이름 입력 (예: "현장문서 OCR")
-4. "Create" 클릭 후 키 복사
+4. "Create Key" 클릭 후 키 복사 (`sk-ant-...` 형식)
 
-### 3. 비용 (매우 저렴!)
-- **DeepSeek-V3**: $0.27/1M input tokens
-- **이미지 1장**: 약 1,000 tokens = **$0.0003 (약 0.4원)**
-- **CLOVA OCR 대비**: **60배 저렴!**
-- **월 100장 처리**: 약 40원
-- **월 1,000장 처리**: 약 400원
+### 3. 비용 (매우 합리적!)
+- **Claude 3.5 Sonnet**: $3/1M input tokens
+- **이미지 1장**: 약 1,000 tokens = **$0.003 (약 4원)**
+- **CLOVA OCR 대비**: **6배 저렴!**
+- **월 100장 처리**: 약 400원
+- **월 1,000장 처리**: 약 4,000원
 
 ## 📥 설치
 
@@ -44,7 +44,7 @@ pip install -r requirements.txt
 ### 4. API 키 설정
 `.env` 파일 생성:
 ```bash
-DEEPSEEK_API_KEY=여기에_DeepSeek_API_키_입력
+CLAUDE_API_KEY=여기에_Claude_API_키_입력
 ```
 
 ## 🚀 사용법
@@ -93,29 +93,29 @@ python src/main.py
 ### 인식률 문제
 - 이미지 해상도 확인 (300dpi 이상 권장)
 - 스캔 품질 향상 (명암 대비, 선명도)
-- DeepSeek Vision은 LLM 기반으로 맥락 이해 가능
+- Claude Vision은 표 인식에 최적화된 최고 수준의 LLM
 
 ### 네트워크 오류
-- 인터넷 연결 확인 (DeepSeek API 접속 필요)
+- 인터넷 연결 확인 (Claude API 접속 필요)
 - 방화벽 설정 확인
-- API 키 만료 확인 (DeepSeek 플랫폼에서 재발급)
+- API 키 만료 확인 (Anthropic 콘솔에서 재발급)
 
 ### 비용 확인
-- DeepSeek 플랫폼에서 사용량 확인 가능
+- Anthropic 콘솔에서 사용량 확인 가능
 - 예상보다 비용이 높다면 이미지 전처리 고려
 
 ## 📊 기술 스택
-- **Vision 엔진**: DeepSeek Vision API (LLM 기반 이미지 이해)
+- **Vision 엔진**: Claude 3.5 Sonnet Vision API (표 인식 최적화)
 - **이미지 처리**: OpenCV, Pillow
 - **데이터 처리**: Pandas, Openpyxl
 - **GUI 프레임워크**: PyQt5
 
-## 🎯 DeepSeek Vision 장점
-1. **통합 처리**: OCR + 테이블 파싱 + 데이터 정제 한 번에
+## 🎯 Claude Vision 장점
+1. **표 인식 최고**: Claude는 표, 문서 인식에 특화됨
 2. **맥락 이해**: "지 반 고" → "지반고" 자동 수정
 3. **구조화 출력**: 바로 JSON으로 깔끔한 데이터
-4. **비용 효율**: CLOVA의 1/60, EasyOCR보다 똑똑함
-5. **오류 보정**: LLM이 오타 자동 수정
+4. **비용 효율**: CLOVA의 1/6, 정확도는 더 높음
+5. **안정성**: 검증된 Vision API, 오류 최소화
 
 ## 📁 프로젝트 구조
 ```
@@ -137,14 +137,15 @@ src/
 
 ## 📅 개발 계획
 - Week 1: 기본 구조 및 UI 구현 ✅
-- Week 2: DeepSeek Vision 엔진 통합 ✅
+- Week 2: Claude Vision 엔진 통합 ✅
 - Week 3: 테이블 파싱 알고리즘 ✅
 - Week 4: Excel 내보내기 및 최적화 ⏳
 
 ## 🔄 아키텍처 진화
 1. **초기**: EasyOCR (로컬 모델, 낮은 정확도)
 2. **개선**: CLOVA OCR (API, 높은 정확도, 비용 문제)
-3. **최종**: DeepSeek Vision (LLM 기반, 최고 정확도, 최저 비용)
+3. **시도**: DeepSeek (Vision 미지원으로 실패)
+4. **최종**: Claude Vision (표 인식 최적화, 합리적 비용)
 
 ## 📄 라이선스
 MIT License

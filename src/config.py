@@ -9,29 +9,30 @@ from dotenv import load_dotenv
 # 환경 변수 로드
 load_dotenv()
 
-# DeepSeek Vision API 설정 (필수)
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+# Claude Vision API 설정 (필수)
+CLAUDE_API_KEY = os.getenv("CLAUDE_API_KEY")
 
 # API 키 검증
-if not DEEPSEEK_API_KEY:
+if not CLAUDE_API_KEY:
     error_message = """
     ============================================================
-    ❌ DeepSeek Vision API 키가 설정되지 않았습니다.
+    ❌ Claude Vision API 키가 설정되지 않았습니다.
     
     📌 API 키 발급 방법:
-    1. DeepSeek 플랫폼 가입: https://platform.deepseek.com
+    1. Anthropic 콘솔 가입: https://console.anthropic.com
     2. API Keys 메뉴에서 새 키 생성
-    3. API 키 복사
+    3. API 키 복사 (sk-ant-... 형식)
     
     📝 설정 방법:
     .env 파일을 생성하고 다음 내용 입력:
     
-    DEEPSEEK_API_KEY=여기에_DeepSeek_API_키_입력
+    CLAUDE_API_KEY=여기에_Claude_API_키_입력
     
     💰 비용 정보:
-    - DeepSeek-V3: $0.27/1M tokens
-    - 이미지 1장 ≈ 1,000 tokens = $0.0003 (약 0.4원)
-    - CLOVA OCR 대비 60배 저렴!
+    - Claude 3.5 Sonnet: $3/1M input tokens
+    - 이미지 1장 ≈ 1,000 tokens = $0.003 (약 4원)
+    - CLOVA OCR 대비 6배 저렴!
+    - Vision 지원 완벽, 표 인식 정확도 최고
     
     자세한 내용: README.md 참고
     ============================================================

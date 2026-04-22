@@ -16,18 +16,18 @@ from pathlib import Path
 import csv
 import json
 
-from ocr.deepseek_engine import DeepSeekEngine
-from config import DEEPSEEK_API_KEY, TABLE_HEADERS
+from ocr.claude_engine import ClaudeEngine
+from config import CLAUDE_API_KEY, TABLE_HEADERS
 
 
-def process_image(image_path, deepseek_engine):
-    """단일 이미지 처리 (DeepSeek Vision)"""
+def process_image(image_path, claude_engine):
+    """단일 이미지 처리 (Claude Vision)"""
     print(f"처리 중: {Path(image_path).name}")
     
-    # DeepSeek Vision으로 표 추출
+    # Claude Vision으로 표 추출
     try:
-        print(f" 🔍 DeepSeek Vision으로 표 추출 중...")
-        table_data = deepseek_engine.extract_table(image_path)
+        print(f" 🔍 Claude Vision으로 표 추출 중...")
+        table_data = claude_engine.extract_table(image_path)
         
         # JSON 데이터를 CSV 행으로 변환
         rows = []
@@ -112,12 +112,12 @@ def main():
         print("\n❌ 오류: 처리할 폴더 또는 파일을 지정하세요.")
         sys.exit(1)
     
-    # DeepSeek Vision 엔진 초기화
+    # Claude Vision 엔진 초기화
     print("=" * 60)
-    print("CM 현장 문서 OCR - DeepSeek Vision 배치 처리")
+    print("CM 현장 문서 OCR - Claude Vision 배치 처리")
     print("=" * 60)
-    print("\n🔧 DeepSeek Vision 엔진 초기화 중...")
-    deepseek_engine = DeepSeekEngine(DEEPSEEK_API_KEY)
+    print("\n🔧 Claude Vision 엔진 초기화 중...")
+    claude_engine = ClaudeEngine(CLAUDE_API_KEY)
     print("✅ 초기화 완료!\n")
     
     # 처리할 파일 목록
@@ -149,7 +149,7 @@ def main():
     print("-" * 60)
     success_count = 0
     for img_path in files:
-        rows = process_image(img_path, deepseek_engine)
+        rows = process_image(img_path, claude_engine)
         if rows:
             all_rows.extend(rows)
             success_count += 1
@@ -162,7 +162,7 @@ def main():
         print("=" * 60)
         print(f"✅ 완료! {success_count}/{len(files)} 파일 처리 성공")
         print(f"📊 총 {len(all_rows)}개 측점 추출")
-        print(f"💰 예상 비용: 약 {len(files) * 0.4:.1f}원")
+        print(f"💰 예상 비용: 약 {len(files) * 4:.1f}원")
         print(f"💾 저장: {output_path}")
         print("=" * 60)
     else:

@@ -3,7 +3,8 @@ PyQt5==5.15.9
 PyQt5-Qt5==5.15.2
 PyQt5-sip==12.18.0
 
-# Vision API (DeepSeek)
+# Vision API (Claude)
+anthropic>=0.18.0
 requests>=2.31.0
 python-dotenv>=1.0.0
 
