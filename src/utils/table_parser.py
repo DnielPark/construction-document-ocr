@@ -133,3 +133,16 @@ class TableParser:
     def align_columns(self, data, column_count):
         """데이터를 컬럼에 맞춰 정렬 (이전 버전 호환용)"""
         return self.align_to_columns(data, column_count)
+        
+    def debug_print_rows(self, rows):
+        """디버그용: 행 그룹화 결과 출력"""
+        print("\n=== 행 그룹화 결과 ===")
+        for i, row in enumerate(rows):
+            if isinstance(row[0], dict):  # OCR 결과 형식
+                texts = [item['text'] for item in row]
+                coords = [(item['center_x'], item['center_y']) for item in row]
+                print(f"행 {i+1}: {texts}")
+                print(f"     좌표: {coords}")
+            else:  # 파싱된 텍스트 형식
+                print(f"행 {i+1}: {row}")
+        print("=" * 50 + "\n")

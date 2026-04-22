@@ -185,47 +185,36 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage("OCR 실패")
             
     def display_ocr_results(self, results):
-        """OCR 결과를 테이블에 표시 (테이블 파싱 적용)"""
-        try:
-            # 테이블 파서로 OCR 결과 파싱
-            from utils.table_parser import TableParser
-            
-            parser = TableParser(y_tolerance=15)  # Y좌표 허용 오차 15px
-            parsed_rows = parser.parse_ocr_results(results)
-            
-            if not parsed_rows:
-                # 파싱된 행이 없으면 원본 결과 표시 (임시)
-                self._display_raw_results(results)
-                return
-            
-            # 20개 컬럼에 맞춰 정렬
-            aligned_rows = parser.align_to_columns(parsed_rows, self.data_table.columns)
-            
-            # 테이블에 표시
-            self.data_table.clear_table()
-            for row in aligned_rows:
-                self.data_table.add_row(row)
-                
-            self.status_bar.showMessage(f"테이블 파싱 완료: {len(aligned_rows)}행")
-            
-        except Exception as e:
-            # 오류 발생 시 원본 결과 표시
-            print(f"테이블 파싱 오류: {e}")
-            self._display_raw_results(results)
-            
-    def _display_raw_results(self, results):
-        """원본 OCR 결과를 테이블에 표시 (임시)"""
+        """OCR 결과를 테이블에 표시"""
+        from utils.table_parser import TableParser
+        from config import TABLE_COLUMNS
+        
+        # 테이블 파서 생성
+        parser = TableParser(y_tolerance=15)
+        
+        # 디버그 출력 (개발 중)
+        parser.debug_print_rows([results])  # 원본 결과
+        
+        # OCR 결과 파싱
+        table_rows = parser.parse_ocr_results(results)
+        
+        # 디버그 출력 (파싱 결과)
+        parser.debug_print_rows([table_rows])  # 파싱 결과
+        
+        # 컬럼 수 맞추기
+        aligned_rows = parser.align_to_columns(table_rows, TABLE_COLUMNS)
+        
+        # 테이블 초기화
         self.data_table.clear_table()
         
-        for item in results:
-            # 임시로 텍스트와 신뢰도만 표시
-            row_data = [
-                item['text'],
-                f"{item['confidence']:.2f}",
-                f"({item['center_x']:.0f}, {item['center_y']:.0f})"
-            ] + [""] * (self.data_table.columns - 3)
-            
+        # 데이터 로드
+        for row_data in aligned_rows:
             self.data_table.add_row(row_data)
+        
+        # 상태 업데이트
+        self.status_bar.showMessage(
+            f"OCR 완료! {len(results)}개 텍스트 인식, {len(aligned_rows)}개 행 파싱됨"
+        )
         
     def save_to_excel(self):
         """Excel로 저장"""
