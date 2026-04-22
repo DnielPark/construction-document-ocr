@@ -43,23 +43,27 @@ if not CLAUDE_API_KEY:
 WINDOW_TITLE = "CM 현장 문서 OCR 프로그램"
 WINDOW_SIZE = (1200, 800)  # 너비, 높이
 
-# 테이블 설정
-TABLE_COLUMNS = 20  # 기본 컬럼 수
+# 테이블 설정 - 실제 표 구조 (13개 항목)
 TABLE_HEADERS = [
-    "측점", "누가거리", "구간거리",
-    "터파기_A(㎡)", "터파기_V(㎥)",
-    "되메우기_A(㎡)", "되메우기_V(㎥)",
-    "모래부설_A(㎡)", "모래부설_V(㎥)",
-    "ASP파취복구_L(m)", "ASP파취복구_A(㎡)",
-    "Conc파취복구_L(m)", "Conc파취복구_A(㎡)",
-    "ASC파취복구_L(m)", "ASC파취복구_A(㎡)",
-    "ASP포장절단_L(m)", "ASP포장절단_A(㎡)",
-    "Conc포장절단_L(m)", "Conc포장절단_A(㎡)",
-    "노면파쇄_L(m)", "노면파쇄_A(㎡)"
+    "측점",
+    "지반고",
+    "관저고",
+    "터파기 육상",
+    "터파기 수중",
+    "되메우기 관주위",
+    "되메우기 관상단",
+    "파취 및 복구 ASP",
+    "파취 및 복구 Con'c",
+    "파취 및 복구 보도블럭",
+    "모래부설",
+    "보조기층",
+    "동상방지층"
 ]
 
+TABLE_COLUMNS = len(TABLE_HEADERS)  # 13개
+
 # 정규식 패턴
-STATION_PATTERN = re.compile(r'^\d+\+\d+\.\d+(\(.*\))?$')
+STATION_PATTERN = re.compile(r'^\d+\+\d+\.\d+$')
 
 # 파일 설정
 SUPPORTED_IMAGE_FORMATS = [

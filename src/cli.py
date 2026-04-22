@@ -29,21 +29,27 @@ def process_image(image_path, claude_engine):
         print(f" 🔍 Claude Vision으로 표 추출 중...")
         table_data = claude_engine.extract_table(image_path)
         
-        # JSON 데이터를 CSV 행으로 변환
+        # JSON 데이터를 CSV 행으로 변환 (13개 항목)
         rows = []
         for item in table_data:
             row = []
             for header in TABLE_HEADERS:
-                # 헤더와 키 매핑
+                # 헤더와 정확히 일치하는 키 찾기
                 if header in item:
                     row.append(item[header])
                 else:
-                    # 단위 제거한 키 찾기 (예: "터파기_A(㎡)" → "터파기_A")
-                    key_without_unit = header.split('(')[0] if '(' in header else header
-                    if key_without_unit in item:
-                        row.append(item[key_without_unit])
-                    else:
-                        row.append("0")  # 기본값
+                    # 기본값 (빈 셀)
+                    row.append("0.00")
+            
+            # 정확히 13개 값인지 확인
+            if len(row) != 13:
+                print(f"⚠️  경고: 측점 {item.get('측점', '알수없음')}의 값이 13개가 아닙니다: {len(row)}개")
+                # 부족한 값 채우기
+                while len(row) < 13:
+                    row.append("0.00")
+                # 초과한 값 자르기
+                row = row[:13]
+            
             rows.append(row)
         
         print(f" ✅ {len(rows)}개 측점 추출 완료\n")
