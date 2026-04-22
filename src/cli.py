@@ -20,44 +20,7 @@ from utils.table_parser import TableParser
 from config import OCR_LANGUAGES, OCR_GPU, TABLE_COLUMNS, TABLE_HEADERS
 
 
-def process_image(image_path, output_dir, ocr_engine, parser):
-    """단일 이미지 처리"""
-    print(f"처리 중: {image_path}")
-    
-    # 이미지 로드
-    image = cv2.imread(str(image_path))
-    if image is None:
-        print(f" ❌ 오류: 이미지를 읽을 수 없습니다.")
-        return False
-    
-    # OCR 실행
-    print(f" 🔍 OCR 실행 중...")
-    results = ocr_engine.recognize_with_coordinates(image)
-    print(f" ✅ {len(results)}개 텍스트 인식됨")
-    
-    # 테이블 파싱
-    table_rows = parser.parse_ocr_results(results)
-    aligned_rows = parser.align_to_columns(table_rows, TABLE_COLUMNS)
-    print(f" 📊 {len(aligned_rows)}개 행 파싱됨")
-    
-    # CSV 저장
-    output_path = Path(output_dir) / f"{Path(image_path).stem}.csv"
-    save_to_csv(aligned_rows, output_path)
-    print(f" 💾 저장: {output_path}\n")
-    
-    return True
 
-
-def save_to_csv(rows, output_path):
-    """CSV 파일로 저장"""
-    import csv
-    
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
-    
-    with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
-        writer.writerow(TABLE_HEADERS)  # 헤더
-        writer.writerows(rows)          # 데이터
 
 
 def main():
@@ -117,6 +80,7 @@ def main():
         # 테스트용: 단일 파일
         print("ℹ️ 테스트 모드: 단일 파일 처리\n")
         files = [Path(args.file)]
+        output_name = Path(args.file).stem
     else:
         # 실무용: 폴더 전체
         folder = Path(args.directory)
@@ -125,6 +89,7 @@ def main():
             list(folder.glob('*.jpg')) + 
             list(folder.glob('*.jpeg'))
         )
+        output_name = folder.name  # 폴더명을 CSV 파일명으로
         print(f"📁 폴더: {folder}")
         print(f"📄 발견된 이미지: {len(files)}개\n")
     
@@ -132,18 +97,55 @@ def main():
         print("❌ 처리할 이미지가 없습니다.")
         sys.exit(1)
     
+    # 전체 데이터를 담을 리스트
+    all_rows = []
+    
     # 파일 처리
     print("-" * 60)
     success_count = 0
     for img_path in files:
-        if process_image(img_path, args.output, ocr_engine, table_parser):
-            success_count += 1
+        print(f"처리 중: {img_path.name}")
+        
+        # 이미지 로드
+        image = cv2.imread(str(img_path))
+        if image is None:
+            print(f" ❌ 오류: 이미지를 읽을 수 없습니다.\n")
+            continue
+        
+        # OCR 실행
+        print(f" 🔍 OCR 실행 중...")
+        results = ocr_engine.recognize_with_coordinates(image)
+        print(f" ✅ {len(results)}개 텍스트 인식됨")
+        
+        # 테이블 파싱
+        table_rows = table_parser.parse_ocr_results(results)
+        aligned_rows = table_parser.align_to_columns(table_rows, TABLE_COLUMNS)
+        print(f" 📊 {len(aligned_rows)}개 행 파싱됨\n")
+        
+        # 전체 리스트에 추가
+        all_rows.extend(aligned_rows)
+        success_count += 1
     
-    # 결과 요약
-    print("=" * 60)
-    print(f"✅ 완료! {success_count}/{len(files)} 파일 처리 성공")
-    print(f"📂 결과 폴더: {args.output}/")
-    print("=" * 60)
+    # 통합 CSV 저장
+    if all_rows:
+        import csv
+        from config import TABLE_HEADERS
+        
+        output_path = Path(args.output) / f"{output_name}.csv"
+        os.makedirs(args.output, exist_ok=True)
+        
+        with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerow(TABLE_HEADERS)
+            writer.writerows(all_rows)
+        
+        print("=" * 60)
+        print(f"✅ 완료! {success_count}/{len(files)} 파일 처리 성공")
+        print(f"📊 총 {len(all_rows)}개 행 추출")
+        print(f"💾 저장: {output_path}")
+        print("=" * 60)
+    else:
+        print("❌ 추출된 데이터가 없습니다.")
 
 
 if __name__ == '__main__':
