@@ -193,29 +193,20 @@ class OCRGui:
         """화면 캡쳐 실행 (듀얼 모니터 지원)"""
         self.log("📸 화면을 드래그하여 영역을 선택하세요... (ESC: 취소)")
         
-        # 전체 가상 화면 크기 계산 (듀얼 모니터 대응)
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        
-        # 오버레이 창 생성 - 전체 가상 화면 커버
+        # 오버레이 창 생성 - fullscreen=True가 모든 모니터 자동 커버
         capture_window = tk.Toplevel(self.root)
         capture_window.attributes("-fullscreen", True)
         capture_window.attributes("-alpha", 0.3)
         capture_window.attributes("-topmost", True)
         capture_window.configure(bg="black")
         
-        # 창 크기를 전체 가상 화면으로 강제 설정
-        capture_window.geometry(f"{screen_width}x{screen_height}+0+0")
+        canvas = tk.Canvas(capture_window, cursor="cross", highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
         
-        canvas = tk.Canvas(capture_window, cursor="cross", highlightthickness=0,
-                           width=screen_width, height=screen_height)
-        canvas.pack()
-        
-        # 드래그 좌표 (화면 좌표 기준)
+        # 드래그 좌표 (화면 절대 좌표 기준)
         coords = {"start_x": None, "start_y": None, "rect": None}
         
         def on_mouse_down(event):
-            # 캔버스 좌표가 아닌 화면 절대 좌표 사용
             coords["start_x"] = event.x_root
             coords["start_y"] = event.y_root
         
@@ -223,15 +214,12 @@ class OCRGui:
             if coords["start_x"] is not None:
                 if coords["rect"]:
                     canvas.delete(coords["rect"])
-                # 캔버스 내 상대 좌표로 사각형 그림
+                # 화면 절대 좌표로 직접 사각형 그리기
                 coords["rect"] = canvas.create_rectangle(
-                    event.x, event.y, event.x, event.y,  # 임시
-                    outline="red", width=3
-                )
-                # 실제 좌표 업데이트
-                canvas.coords(coords["rect"],
                     coords["start_x"], coords["start_y"],
-                    event.x_root, event.y_root)
+                    event.x_root, event.y_root,
+                    outline="red", width=3, tags="selection"
+                )
         
         def on_mouse_up(event):
             if coords["start_x"] is None:
