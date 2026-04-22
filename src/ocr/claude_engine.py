@@ -17,14 +17,16 @@ class ClaudeEngine:
         
     def extract_table(self, image_path):
         """이미지에서 표 데이터 추출"""
-        print(f"📊 Claude Vision으로 표 추출 중: {Path(image_path).name}")
+        # Path 객체를 문자열로 변환
+        image_path_str = str(image_path)
+        print(f"📊 Claude Vision으로 표 추출 중: {Path(image_path_str).name}")
         
         # 이미지를 base64로 인코딩
-        with open(image_path, 'rb') as f:
+        with open(image_path_str, 'rb') as f:
             image_data = base64.standard_b64encode(f.read()).decode('utf-8')
         
         # 이미지 확장자 확인
-        ext = image_path.lower().split('.')[-1]
+        ext = image_path_str.lower().split('.')[-1]
         media_type = f"image/{ext}" if ext in ['png', 'jpg', 'jpeg'] else "image/jpeg"
         
         prompt = """첨부된 이미지는 하수관로 공사 수량표입니다.
