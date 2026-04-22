@@ -62,12 +62,41 @@ def process_image(image_path, claude_engine):
 
 def save_to_csv(rows, output_path):
     """CSV 파일로 저장"""
+    import os
+    import time
+    
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     
-    with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
-        writer = csv.writer(f)
-        writer.writerow(TABLE_HEADERS)  # 헤더
-        writer.writerows(rows)          # 데이터
+    # 파일이 열려있으면 새 파일명 생성
+    original_path = output_path
+    counter = 1
+    
+    while True:
+        try:
+            with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
+                writer = csv.writer(f)
+                writer.writerow(TABLE_HEADERS)  # 헤더
+                writer.writerows(rows)          # 데이터
+            break  # 성공하면 루프 탈출
+        
+        except PermissionError:
+            # 파일이 열려있으면 번호 붙여서 재시도
+            base = original_path.rsplit('.', 1)[0]
+            ext = original_path.rsplit('.', 1)[1] if '.' in original_path else 'csv'
+            output_path = f"{base}_{counter}.{ext}"
+            counter += 1
+            
+            if counter > 5:
+                # 5번 시도 후 포기
+                print(f"\n❌ 오류: CSV 파일 저장 실패")
+                print(f" {original_path} 파일이 다른 프로그램에서 열려있습니다.")
+                print(f" 파일을 닫고 다시 시도하세요.")
+                raise
+            
+            print(f"⚠️ {original_path} 파일이 사용 중입니다.")
+            print(f" 대신 {output_path}에 저장합니다...")
+    
+    return output_path
 
 
 def main():
@@ -163,13 +192,13 @@ def main():
     # 통합 CSV 저장
     if all_rows:
         output_path = Path(args.output) / f"{output_name}.csv"
-        save_to_csv(all_rows, output_path)
+        saved_path = save_to_csv(all_rows, output_path)
         
         print("=" * 60)
         print(f"✅ 완료! {success_count}/{len(files)} 파일 처리 성공")
         print(f"📊 총 {len(all_rows)}개 측점 추출")
         print(f"💰 예상 비용: 약 {len(files) * 1.5:.1f}원 (Haiku 4.5)")
-        print(f"💾 저장: {output_path}")
+        print(f"💾 저장: {saved_path}")
         print("=" * 60)
     else:
         print("❌ 추출된 데이터가 없습니다.")
