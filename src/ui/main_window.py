@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtCore import Qt, QSize
 from PyQt5.QtGui import QIcon, QPixmap
+import cv2
 
 from config import WINDOW_TITLE, WINDOW_SIZE, TABLE_COLUMNS, TABLE_HEADERS
 from ui.image_viewer import ImageViewer
@@ -122,9 +123,87 @@ class MainWindow(QMainWindow):
             
     def run_ocr(self):
         """OCR 실행"""
-        # TODO: OCR 엔진 연동
-        self.status_bar.showMessage("OCR 실행 (구현 중)")
-        QMessageBox.information(self, "알림", "OCR 기능은 Week 2에서 구현됩니다.")
+        if not self.image_viewer.image_label.pixmap():
+            QMessageBox.warning(self, "경고", "이미지를 먼저 로드해주세요.")
+            return
+            
+        self.status_bar.showMessage("OCR 실행 중...")
+        
+        try:
+            # OCR 엔진 초기화
+            from ocr.ocr_engine import OCREngine
+            from config import OCR_LANGUAGES, OCR_GPU
+            
+            ocr_engine = OCREngine(languages=OCR_LANGUAGES, gpu=OCR_GPU)
+            
+            # 이미지 가져오기 (QPixmap → numpy array)
+            pixmap = self.image_viewer.image_label.pixmap()
+            image = self.pixmap_to_numpy(pixmap)
+            
+            # 선택 영역 확인
+            selection_rect = self.image_viewer.get_selection_rect()
+            
+            if selection_rect:
+                # 선택 영역 OCR
+                rect = (
+                    selection_rect.x(),
+                    selection_rect.y(),
+                    selection_rect.width(),
+                    selection_rect.height()
+                )
+                text = ocr_engine.recognize_region(image, rect)
+                
+                # 테이블에 추가
+                if text.strip():
+                    self.data_table.add_row([text] + [""] * (self.data_table.columns - 1))
+                    self.status_bar.showMessage(f"선택 영역 OCR 완료: {text[:50]}...")
+                else:
+                    QMessageBox.information(self, "알림", "선택 영역에서 텍스트를 인식하지 못했습니다.")
+            else:
+                # 전체 이미지 OCR
+                results = ocr_engine.recognize(image)
+                
+                # 결과를 테이블에 추가
+                self.data_table.clear_table()
+                for i, item in enumerate(results[:10]):  # 최대 10개만 표시
+                    text = item['text']
+                    confidence = item['confidence']
+                    self.data_table.add_row([f"{i+1}", text, f"{confidence:.2f}"] + [""] * (self.data_table.columns - 3))
+                
+                self.status_bar.showMessage(f"전체 이미지 OCR 완료: {len(results)}개 텍스트 인식")
+                
+        except Exception as e:
+            QMessageBox.critical(self, "오류", f"OCR 실행 중 오류 발생:\n{str(e)}")
+            self.status_bar.showMessage("OCR 실행 실패")
+            
+    def pixmap_to_numpy(self, pixmap):
+        """QPixmap을 numpy array로 변환"""
+        from PyQt5.QtGui import QImage
+        import numpy as np
+        
+        # QPixmap → QImage
+        qimage = pixmap.toImage()
+        
+        # QImage → numpy array
+        width = qimage.width()
+        height = qimage.height()
+        
+        # 포맷에 따라 처리
+        if qimage.format() == QImage.Format_RGB32:
+            ptr = qimage.bits()
+            ptr.setsize(height * width * 4)
+            arr = np.frombuffer(ptr, np.uint8).reshape((height, width, 4))
+            # BGRA → BGR 변환
+            return cv2.cvtColor(arr, cv2.COLOR_BGRA2BGR)
+        else:
+            # 다른 포맷은 RGB32로 변환 후 처리
+            qimage = qimage.convertToFormat(QImage.Format_RGB32)
+            return self.pixmap_to_numpy(QPixmap.fromImage(qimage))
+
+
+# OpenCV import 추가
+import cv2
+from PyQt5.QtGui import QPixmap
         
     def save_to_excel(self):
         """Excel로 저장"""
