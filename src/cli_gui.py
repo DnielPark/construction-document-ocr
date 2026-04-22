@@ -8,6 +8,8 @@ import tkinter as tk
 from tkinter import filedialog, scrolledtext, messagebox
 import threading
 import os
+import subprocess
+import platform
 from pathlib import Path
 from ocr.claude_engine import ClaudeEngine
 from config import TABLE_HEADERS
@@ -61,9 +63,16 @@ class OCRGui:
         button_frame = tk.Frame(self.root, padx=10, pady=10)
         button_frame.pack(fill=tk.X)
         
+        # OCR 실행 버튼
         self.run_button = tk.Button(button_frame, text="OCR 실행", command=self.run_ocr, 
                                      bg="#4CAF50", fg="white", font=("Arial", 12, "bold"), height=2)
-        self.run_button.pack(fill=tk.X)
+        self.run_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        
+        # 출력 폴더 열기 버튼
+        self.open_folder_button = tk.Button(button_frame, text="📁 출력 폴더 열기", 
+                                             command=self.open_output_folder,
+                                             bg="#2196F3", fg="white", font=("Arial", 12, "bold"), height=2)
+        self.open_folder_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
         
         # 하단: 진행 상황 표시
         log_frame = tk.Frame(self.root, padx=10, pady=10)
@@ -88,6 +97,24 @@ class OCRGui:
             self.selected_folder = folder
             self.folder_label.config(text=folder, fg="black")
             self.log(f"📁 폴더 선택됨: {folder}")
+        
+    def open_output_folder(self):
+        """출력 폴더 열기"""
+        output_dir = Path("output")
+        
+        if not output_dir.exists():
+            messagebox.showwarning("경고", "출력 폴더가 아직 생성되지 않았습니다.")
+            return
+        
+        try:
+            if platform.system() == "Windows":
+                os.startfile(output_dir)
+            elif platform.system() == "Darwin":  # macOS
+                subprocess.run(["open", output_dir])
+            else:  # Linux
+                subprocess.run(["xdg-open", output_dir])
+        except Exception as e:
+            messagebox.showerror("오류", f"폴더를 열 수 없습니다: {str(e)}")
         
     def run_ocr(self):
         """OCR 실행 (별도 스레드에서)"""
