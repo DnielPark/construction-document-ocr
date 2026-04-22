@@ -162,7 +162,7 @@ def main():
         print("=" * 60)
         print(f"✅ 완료! {success_count}/{len(files)} 파일 처리 성공")
         print(f"📊 총 {len(all_rows)}개 측점 추출")
-        print(f"💰 예상 비용: 약 {len(files) * 4:.1f}원")
+        print(f"💰 예상 비용: 약 {len(files) * 1.5:.1f}원 (Haiku 4.5)")
         print(f"💾 저장: {output_path}")
         print("=" * 60)
     else:

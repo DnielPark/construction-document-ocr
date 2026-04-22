@@ -67,7 +67,7 @@ class ClaudeEngine:
 6. 모든 측점을 배열에 포함"""
         
         message = self.client.messages.create(
-            model="claude-3-5-sonnet-20250514",
+            model="claude-haiku-4-5",
             max_tokens=4096,
             messages=[
                 {
