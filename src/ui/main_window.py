@@ -185,7 +185,36 @@ class MainWindow(QMainWindow):
             self.status_bar.showMessage("OCR 실패")
             
     def display_ocr_results(self, results):
-        """OCR 결과를 테이블에 표시 (임시)"""
+        """OCR 결과를 테이블에 표시 (테이블 파싱 적용)"""
+        try:
+            # 테이블 파서로 OCR 결과 파싱
+            from utils.table_parser import TableParser
+            
+            parser = TableParser(y_tolerance=15)  # Y좌표 허용 오차 15px
+            parsed_rows = parser.parse_ocr_results(results)
+            
+            if not parsed_rows:
+                # 파싱된 행이 없으면 원본 결과 표시 (임시)
+                self._display_raw_results(results)
+                return
+            
+            # 20개 컬럼에 맞춰 정렬
+            aligned_rows = parser.align_to_columns(parsed_rows, self.data_table.columns)
+            
+            # 테이블에 표시
+            self.data_table.clear_table()
+            for row in aligned_rows:
+                self.data_table.add_row(row)
+                
+            self.status_bar.showMessage(f"테이블 파싱 완료: {len(aligned_rows)}행")
+            
+        except Exception as e:
+            # 오류 발생 시 원본 결과 표시
+            print(f"테이블 파싱 오류: {e}")
+            self._display_raw_results(results)
+            
+    def _display_raw_results(self, results):
+        """원본 OCR 결과를 테이블에 표시 (임시)"""
         self.data_table.clear_table()
         
         for item in results:
