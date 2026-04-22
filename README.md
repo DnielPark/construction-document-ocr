@@ -16,15 +16,55 @@
 - **데이터 처리**: Pandas, Openpyxl
 
 ## 설치
-```bash
-# 가상환경 생성 (선택사항)
-python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-# 또는 .venv\Scripts\activate  # Windows
 
-# 의존성 설치
+### 환경 요구사항
+- Python 3.12+
+- Windows 10/11 (64-bit)
+
+### 설치 방법
+
+#### 1. 저장소 클론
+```bash
+git clone https://github.com/DnielPark/construction-document-ocr.git
+cd construction-document-ocr
+```
+
+#### 2. 가상환경 생성 (권장)
+```bash
+python -m venv venv
+venv\Scripts\activate  # Windows
+# 또는 source venv/bin/activate  # Linux/Mac
+```
+
+#### 3. PyTorch CPU 버전 설치 (필수 - 먼저!)
+```bash
+pip install torch==2.11.0 torchvision==0.26.0 torchaudio==2.11.0 --index-url https://download.pytorch.org/whl/cpu
+```
+
+#### 4. 나머지 의존성 설치
+```bash
 pip install -r requirements.txt
 ```
+
+### 실행
+```bash
+python src\main.py
+```
+
+### 문제 해결
+
+**DLL 오류 발생 시:**
+1. Visual C++ Redistributable 설치: https://aka.ms/vs/17/release/vc_redist.x64.exe
+2. PC 재부팅
+
+**Pillow 호환성 오류:**
+```bash
+pip install --upgrade easyocr
+```
+
+**메모리 부족 오류:**
+- 이미지 크기 줄이기
+- 선택 영역 OCR 사용
 
 ## 사용법
 ```bash

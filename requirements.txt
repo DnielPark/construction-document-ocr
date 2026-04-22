@@ -1,21 +1,48 @@
-# GUI
+# GUI Framework
 PyQt5==5.15.9
+PyQt5-Qt5==5.15.2
+PyQt5-sip==12.18.0
 
-# OCR
-easyocr==1.7.0
-torch>=2.0.0
-torchvision>=0.15.0
+# OCR Engine
+easyocr==1.7.2
+
+# Deep Learning (PyTorch CPU 버전)
+torch==2.11.0+cpu
+torchvision==0.26.0+cpu
+torchaudio==2.11.0+cpu
 
 # Image Processing
-opencv-python>=4.8.0
-Pillow>=10.0.0
+opencv-python==4.13.0.92
+opencv-python-headless==4.13.0.92
+Pillow==12.2.0
+numpy==2.4.4
+scikit-image==0.26.0
+scipy==1.17.1
+ImageIO==2.37.3
+
+# OCR Dependencies
+pyclipper==1.4.0
+python-bidi==0.6.7
+shapely==2.1.2
+PyYAML==6.0.3
 
 # Data Processing
-pandas>=2.0.3
-openpyxl>=3.1.2
-numpy>=1.24.3
+pandas==3.0.2
+openpyxl==3.1.5
+python-dateutil==2.9.0.post0
 
-# Development (optional)
-black>=23.3.0
-flake8>=6.0.0
-pytest>=7.3.1
+# Utilities
+filelock==3.29.0
+networkx==3.6.1
+sympy==1.14.0
+Jinja2==3.1.6
+MarkupSafe==3.0.3
+packaging==26.1
+click==8.3.2
+colorama==0.4.6
+
+# Development Tools (optional)
+black==26.3.1
+flake8==7.3.0
+pytest==9.0.3
+mypy-extensions==1.1.0
