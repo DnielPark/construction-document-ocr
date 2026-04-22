@@ -3,6 +3,8 @@ PyQt5==5.15.9
 
 # OCR
 easyocr==1.7.0
+torch>=2.0.0
+torchvision>=0.15.0
 
 # Image Processing
 opencv-python>=4.8.0
