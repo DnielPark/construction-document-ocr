@@ -22,7 +22,7 @@ class OCRGui:
     def __init__(self, root):
         self.root = root
         self.root.title("CM 현장 문서 OCR 프로그램")
-        self.root.geometry("900x600")  # 가로 확장
+        self.root.geometry("900x600")
         
         # API 키 (메모리에만 저장)
         self.api_key = None
@@ -34,6 +34,9 @@ class OCRGui:
         # 캡쳐 관련
         self.capture_folder = None
         self.capture_count = 0
+        
+        # 다중 선택
+        self.selected_thumbnails = set()
         
         self.create_widgets()
         
@@ -76,7 +79,7 @@ class OCRGui:
         tk.Button(ocr_folder_frame, text="폴더 선택", command=self.select_folder).pack(side=tk.RIGHT)
         
         # 버튼들
-        tk.Frame(left_frame, height=10).pack()  # 여백
+        tk.Frame(left_frame, height=10).pack()
         
         self.run_button = tk.Button(left_frame, text="OCR 실행", command=self.run_ocr,
                                      bg="#4CAF50", fg="white", font=("Arial", 11, "bold"), height=2)
@@ -106,19 +109,22 @@ class OCRGui:
         
         # === 오른쪽: 캡쳐 썸네일 ===
         
-        tk.Label(right_frame, text="캡쳐한 이미지", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(anchor=tk.W)
+        # 상단 정보 바
+        info_bar = tk.Frame(right_frame, bg="#f0f0f0")
+        info_bar.pack(fill=tk.X)
         
-        # 캡쳐 폴더 정보
-        capture_info_frame = tk.Frame(right_frame, bg="#f0f0f0")
-        capture_info_frame.pack(fill=tk.X, pady=5)
+        tk.Label(info_bar, text="저장 폴더:", font=("Arial", 10), bg="#f0f0f0").pack(side=tk.LEFT)
         
-        self.capture_folder_label = tk.Label(capture_info_frame, text="폴더: (미선택)",
+        self.capture_folder_label = tk.Label(info_bar, text="(미선택)",
                                               fg="gray", bg="#f0f0f0", anchor=tk.W)
-        self.capture_folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        self.capture_folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         
-        self.capture_count_label = tk.Label(capture_info_frame, text="0개", 
+        tk.Button(info_bar, text="폴더 변경", command=self.select_capture_folder,
+                  font=("Arial", 9)).pack(side=tk.RIGHT)
+        
+        self.capture_count_label = tk.Label(info_bar, text="총 0개",
                                              font=("Arial", 10, "bold"), bg="#f0f0f0")
-        self.capture_count_label.pack(side=tk.RIGHT)
+        self.capture_count_label.pack(side=tk.RIGHT, padx=(0, 10))
         
         # 스크롤 가능한 캔버스
         canvas_frame = tk.Frame(right_frame, bg="white", relief=tk.SUNKEN, bd=1)
@@ -147,7 +153,7 @@ class OCRGui:
         self.log_text.config(state=tk.DISABLED)
         
     def select_folder(self):
-        """폴더 선택 다이얼로그"""
+        """OCR 폴더 선택 다이얼로그"""
         folder = filedialog.askdirectory(title="이미지 폴더를 선택하세요")
         if folder:
             self.selected_folder = folder
@@ -172,19 +178,21 @@ class OCRGui:
         except Exception as e:
             messagebox.showerror("오류", f"폴더를 열 수 없습니다: {str(e)}")
     
-    def start_capture_mode(self):
-        """캡쳐 모드 시작 - 폴더 선택"""
+    def select_capture_folder(self):
+        """캡쳐 저장 폴더 선택 (폴더 변경 버튼)"""
         folder = filedialog.askdirectory(title="캡쳐 이미지를 저장할 폴더를 선택하세요")
-        
-        if not folder:
+        if folder:
+            self.capture_folder = folder
+            self.capture_folder_label.config(text=folder, fg="black")
+            self.log(f"📁 캡쳐 저장 폴더 변경: {folder}")
+            self.refresh_thumbnails()
+    
+    def start_capture_mode(self):
+        """캡쳐 모드 시작 - 즉시 화면 캡쳐"""
+        # 폴더 미선택 시 경고
+        if not self.capture_folder:
+            messagebox.showwarning("경고", "먼저 저장 폴더를 선택하세요.")
             return
-        
-        self.capture_folder = folder
-        self.capture_folder_label.config(text=f"폴더: {folder}", fg="black")
-        self.log(f"📸 캡쳐 폴더 설정: {folder}")
-        
-        # 기존 이미지 카운트
-        self.refresh_thumbnails()
         
         # 화면 캡쳐 시작
         self.do_screen_capture()
@@ -284,6 +292,9 @@ class OCRGui:
         for widget in self.thumbnail_frame.winfo_children():
             widget.destroy()
         
+        # 선택 초기화
+        self.selected_thumbnails.clear()
+        
         if not self.capture_folder:
             return
         
@@ -296,7 +307,7 @@ class OCRGui:
         )
         
         # 개수 업데이트
-        self.capture_count_label.config(text=f"{len(image_files)}개")
+        self.capture_count_label.config(text=f"총 {len(image_files)}개")
         
         # 썸네일 생성 (4열 그리드)
         cols = 4
@@ -315,6 +326,8 @@ class OCRGui:
                 
                 item_frame = tk.Frame(self.thumbnail_frame, bg="white", relief=tk.RAISED, bd=1)
                 item_frame.grid(row=row, column=col, padx=5, pady=5)
+                item_frame.img_path = img_path  # 경로 저장
+                item_frame.is_selected = False
                 
                 # 이미지
                 img_label = tk.Label(item_frame, image=photo, bg="white")
@@ -324,9 +337,104 @@ class OCRGui:
                 # 파일명
                 tk.Label(item_frame, text=img_path.name, bg="white", font=("Arial", 8)).pack()
                 
+                # 우클릭 메뉴
+                right_click_menu = tk.Menu(self.root, tearoff=0)
+                right_click_menu.add_command(label="삭제", 
+                    command=lambda p=img_path, f=item_frame: self.delete_single(p, f))
+                
+                def show_context_menu(event, menu=right_click_menu):
+                    menu.tk_popup(event.x_root, event.y_root)
+                
+                # Ctrl+클릭 다중 선택
+                def on_ctrl_click(event, frame=item_frame, path=img_path):
+                    if event.state & 0x0004:  # Ctrl 키 눌림
+                        self.toggle_selection(frame, path)
+                
+                # 일반 클릭 - 선택 해제
+                def on_click(event):
+                    if self.selected_thumbnails:
+                        self.clear_selection()
+                
+                item_frame.bind("<Button-3>", show_context_menu)
+                item_frame.bind("<Control-Button-1>", on_ctrl_click)
+                item_frame.bind("<Button-1>", on_click)
+                img_label.bind("<Button-3>", show_context_menu)
+                img_label.bind("<Control-Button-1>", on_ctrl_click)
+                
             except Exception as e:
                 print(f"썸네일 생성 실패: {img_path.name} - {e}")
         
+        # 선택 삭제 버튼 (우클릭 메뉴 대신 하단에 배치)
+        if image_files:
+            btn_frame = tk.Frame(self.thumbnail_frame, bg="white")
+            row_count = (len(image_files) - 1) // cols + 1
+            btn_frame.grid(row=row_count, column=0, columnspan=cols, pady=10)
+            
+            tk.Button(btn_frame, text="🗑️ 선택 삭제", command=self.delete_selected,
+                      bg="#f44336", fg="white", font=("Arial", 10, "bold")).pack()
+    
+    def toggle_selection(self, frame, path):
+        """Ctrl+클릭으로 선택 토글"""
+        if frame in self.selected_thumbnails:
+            # 선택 해제
+            self.selected_thumbnails.discard(frame)
+            frame.config(bg="white")
+            for child in frame.winfo_children():
+                try:
+                    child.config(bg="white")
+                except:
+                    pass
+        else:
+            # 선택
+            self.selected_thumbnails.add(frame)
+            frame.config(bg="#b3d9ff")
+            for child in frame.winfo_children():
+                try:
+                    child.config(bg="#b3d9ff")
+                except:
+                    pass
+    
+    def clear_selection(self):
+        """선택 초기화"""
+        for frame in self.selected_thumbnails:
+            frame.config(bg="white")
+            for child in frame.winfo_children():
+                try:
+                    child.config(bg="white")
+                except:
+                    pass
+        self.selected_thumbnails.clear()
+    
+    def delete_single(self, path, frame):
+        """단일 이미지 삭제"""
+        if messagebox.askyesno("삭제 확인", f"'{path.name}'을(를) 삭제하시겠습니까?"):
+            try:
+                path.unlink()
+                self.log(f"🗑️ 삭제: {path.name}")
+                self.refresh_thumbnails()
+            except Exception as e:
+                self.log(f"❌ 삭제 오류: {str(e)}")
+    
+    def delete_selected(self):
+        """선택된 이미지들 일괄 삭제"""
+        if not self.selected_thumbnails:
+            messagebox.showinfo("알림", "Ctrl+클릭으로 삭제할 이미지를 선택하세요.")
+            return
+        
+        count = len(self.selected_thumbnails)
+        if messagebox.askyesno("삭제 확인", f"선택한 {count}개 이미지를 삭제하시겠습니까?"):
+            deleted = 0
+            for frame in self.selected_thumbnails:
+                try:
+                    path = frame.img_path
+                    path.unlink()
+                    deleted += 1
+                except Exception as e:
+                    self.log(f"❌ 삭제 오류: {str(e)}")
+            
+            self.log(f"🗑️ {deleted}개 이미지 삭제 완료")
+            self.refresh_thumbnails()
+    
     def run_ocr(self):
         """OCR 실행 (별도 스레드에서)"""
         # API 키 확인
