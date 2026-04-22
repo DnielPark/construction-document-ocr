@@ -278,10 +278,7 @@ class OCRGui:
             
             # 썸네일 새로고침
             self.refresh_thumbnails()
-            
-            # 계속 캡쳐할지 묻기
-            if messagebox.askyesno("캡쳐 완료", "계속 캡쳐하시겠습니까?"):
-                self.do_screen_capture()
+            # 끝! 다시 캡쳐하려면 "📸 캡쳐 모드" 버튼 다시 클릭
             
         except Exception as e:
             self.log(f"❌ 캡쳐 오류: {str(e)}")
