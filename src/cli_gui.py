@@ -10,7 +10,9 @@ import threading
 import os
 import subprocess
 import platform
+import time
 from pathlib import Path
+from PIL import Image, ImageGrab, ImageTk
 from ocr.claude_engine import ClaudeEngine
 from config import TABLE_HEADERS
 import csv
@@ -20,7 +22,7 @@ class OCRGui:
     def __init__(self, root):
         self.root = root
         self.root.title("CM 현장 문서 OCR 프로그램")
-        self.root.geometry("600x500")
+        self.root.geometry("900x600")  # 가로 확장
         
         # API 키 (메모리에만 저장)
         self.api_key = None
@@ -29,59 +31,113 @@ class OCRGui:
         # 선택된 폴더
         self.selected_folder = None
         
+        # 캡쳐 관련
+        self.capture_folder = None
+        self.capture_count = 0
+        
         self.create_widgets()
         
     def create_widgets(self):
-        # 상단: API 키 입력
-        api_frame = tk.Frame(self.root, padx=10, pady=10)
-        api_frame.pack(fill=tk.X)
+        # 메인 프레임 (좌우 분할)
+        main_container = tk.Frame(self.root)
+        main_container.pack(fill=tk.BOTH, expand=True)
         
-        tk.Label(api_frame, text="Claude API 키:", font=("Arial", 10)).pack(anchor=tk.W)
+        # 왼쪽 프레임 (컨트롤)
+        left_frame = tk.Frame(main_container, padx=10, pady=10, width=350)
+        left_frame.pack(side=tk.LEFT, fill=tk.BOTH)
+        left_frame.pack_propagate(False)
         
-        self.api_entry = tk.Entry(api_frame, width=50, show="*")
+        # 오른쪽 프레임 (캡쳐 썸네일)
+        right_frame = tk.Frame(main_container, padx=10, pady=10, bg="#f0f0f0")
+        right_frame.pack(side=tk.RIGHT, fill=tk.BOTH, expand=True)
+        
+        # === 왼쪽: 기존 컨트롤 ===
+        
+        # API 키
+        tk.Label(left_frame, text="Claude API 키:", font=("Arial", 10)).pack(anchor=tk.W)
+        self.api_entry = tk.Entry(left_frame, width=40, show="*")
         self.api_entry.pack(fill=tk.X, pady=5)
         
-        # 보안 안내
-        warning_text = "⚠️ 보안 안내: API 키는 임시로만 사용되며, 파일에 저장되지 않습니다. 프로그램 종료 시 자동 삭제됩니다."
-        tk.Label(api_frame, text=warning_text, fg="red", wraplength=550, justify=tk.LEFT).pack(anchor=tk.W)
+        warning_text = "⚠️ API 키는 임시 저장 (종료 시 삭제)"
+        tk.Label(left_frame, text=warning_text, fg="red", wraplength=330).pack(anchor=tk.W, pady=(0, 10))
         
-        # 중간: 폴더 선택
-        folder_frame = tk.Frame(self.root, padx=10, pady=10)
-        folder_frame.pack(fill=tk.X)
+        # 구분선
+        tk.Frame(left_frame, height=2, bg="gray").pack(fill=tk.X, pady=10)
         
-        tk.Label(folder_frame, text="이미지 폴더:", font=("Arial", 10)).pack(anchor=tk.W)
+        # OCR 폴더 선택
+        tk.Label(left_frame, text="OCR 처리 폴더:", font=("Arial", 10, "bold")).pack(anchor=tk.W)
         
-        folder_select_frame = tk.Frame(folder_frame)
-        folder_select_frame.pack(fill=tk.X, pady=5)
+        ocr_folder_frame = tk.Frame(left_frame)
+        ocr_folder_frame.pack(fill=tk.X, pady=5)
         
-        self.folder_label = tk.Label(folder_select_frame, text="(폴더를 선택하세요)", fg="gray")
+        self.folder_label = tk.Label(ocr_folder_frame, text="(폴더 선택)", fg="gray", anchor=tk.W)
         self.folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
         
-        tk.Button(folder_select_frame, text="폴더 선택", command=self.select_folder).pack(side=tk.RIGHT)
+        tk.Button(ocr_folder_frame, text="폴더 선택", command=self.select_folder).pack(side=tk.RIGHT)
         
-        # 실행 버튼
-        button_frame = tk.Frame(self.root, padx=10, pady=10)
-        button_frame.pack(fill=tk.X)
+        # 버튼들
+        tk.Frame(left_frame, height=10).pack()  # 여백
         
-        # OCR 실행 버튼
-        self.run_button = tk.Button(button_frame, text="OCR 실행", command=self.run_ocr, 
-                                     bg="#4CAF50", fg="white", font=("Arial", 12, "bold"), height=2)
-        self.run_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 5))
+        self.run_button = tk.Button(left_frame, text="OCR 실행", command=self.run_ocr,
+                                     bg="#4CAF50", fg="white", font=("Arial", 11, "bold"), height=2)
+        self.run_button.pack(fill=tk.X, pady=2)
         
-        # 출력 폴더 열기 버튼
-        self.open_folder_button = tk.Button(button_frame, text="📁 출력 폴더 열기", 
+        self.open_folder_button = tk.Button(left_frame, text="📁 출력 폴더 열기",
                                              command=self.open_output_folder,
-                                             bg="#2196F3", fg="white", font=("Arial", 12, "bold"), height=2)
-        self.open_folder_button.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(5, 0))
+                                             bg="#2196F3", fg="white", font=("Arial", 11, "bold"), height=2)
+        self.open_folder_button.pack(fill=tk.X, pady=2)
         
-        # 하단: 진행 상황 표시
-        log_frame = tk.Frame(self.root, padx=10, pady=10)
-        log_frame.pack(fill=tk.BOTH, expand=True)
+        # 구분선
+        tk.Frame(left_frame, height=2, bg="gray").pack(fill=tk.X, pady=10)
         
-        tk.Label(log_frame, text="📊 진행 상황:", font=("Arial", 10)).pack(anchor=tk.W)
+        # 캡쳐 모드
+        tk.Label(left_frame, text="화면 캡쳐:", font=("Arial", 10, "bold")).pack(anchor=tk.W)
         
-        self.log_text = scrolledtext.ScrolledText(log_frame, height=15, state=tk.DISABLED)
+        self.capture_button = tk.Button(left_frame, text="📸 캡쳐 모드", command=self.start_capture_mode,
+                                         bg="#FF9800", fg="white", font=("Arial", 11, "bold"), height=2)
+        self.capture_button.pack(fill=tk.X, pady=5)
+        
+        # 진행 상황
+        tk.Frame(left_frame, height=10).pack()
+        tk.Label(left_frame, text="📊 진행 상황:", font=("Arial", 10)).pack(anchor=tk.W)
+        
+        self.log_text = scrolledtext.ScrolledText(left_frame, height=12, state=tk.DISABLED)
         self.log_text.pack(fill=tk.BOTH, expand=True)
+        
+        # === 오른쪽: 캡쳐 썸네일 ===
+        
+        tk.Label(right_frame, text="캡쳐한 이미지", font=("Arial", 12, "bold"), bg="#f0f0f0").pack(anchor=tk.W)
+        
+        # 캡쳐 폴더 정보
+        capture_info_frame = tk.Frame(right_frame, bg="#f0f0f0")
+        capture_info_frame.pack(fill=tk.X, pady=5)
+        
+        self.capture_folder_label = tk.Label(capture_info_frame, text="폴더: (미선택)",
+                                              fg="gray", bg="#f0f0f0", anchor=tk.W)
+        self.capture_folder_label.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        self.capture_count_label = tk.Label(capture_info_frame, text="0개", 
+                                             font=("Arial", 10, "bold"), bg="#f0f0f0")
+        self.capture_count_label.pack(side=tk.RIGHT)
+        
+        # 스크롤 가능한 캔버스
+        canvas_frame = tk.Frame(right_frame, bg="white", relief=tk.SUNKEN, bd=1)
+        canvas_frame.pack(fill=tk.BOTH, expand=True, pady=5)
+        
+        self.thumbnail_canvas = tk.Canvas(canvas_frame, bg="white")
+        scrollbar = tk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=self.thumbnail_canvas.yview)
+        
+        self.thumbnail_canvas.configure(yscrollcommand=scrollbar.set)
+        
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        self.thumbnail_canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        
+        # 썸네일을 담을 프레임
+        self.thumbnail_frame = tk.Frame(self.thumbnail_canvas, bg="white")
+        self.thumbnail_canvas.create_window((0, 0), window=self.thumbnail_frame, anchor=tk.NW)
+        
+        self.thumbnail_frame.bind("<Configure>", 
+            lambda e: self.thumbnail_canvas.configure(scrollregion=self.thumbnail_canvas.bbox("all")))
         
     def log(self, message):
         """로그 메시지 추가"""
@@ -96,8 +152,8 @@ class OCRGui:
         if folder:
             self.selected_folder = folder
             self.folder_label.config(text=folder, fg="black")
-            self.log(f"📁 폴더 선택됨: {folder}")
-        
+            self.log(f"📁 OCR 폴더 선택됨: {folder}")
+    
     def open_output_folder(self):
         """출력 폴더 열기"""
         output_dir = Path("output")
@@ -115,6 +171,159 @@ class OCRGui:
                 subprocess.run(["xdg-open", output_dir])
         except Exception as e:
             messagebox.showerror("오류", f"폴더를 열 수 없습니다: {str(e)}")
+    
+    def start_capture_mode(self):
+        """캡쳐 모드 시작 - 폴더 선택"""
+        folder = filedialog.askdirectory(title="캡쳐 이미지를 저장할 폴더를 선택하세요")
+        
+        if not folder:
+            return
+        
+        self.capture_folder = folder
+        self.capture_folder_label.config(text=f"폴더: {folder}", fg="black")
+        self.log(f"📸 캡쳐 폴더 설정: {folder}")
+        
+        # 기존 이미지 카운트
+        self.refresh_thumbnails()
+        
+        # 화면 캡쳐 시작
+        self.do_screen_capture()
+    
+    def do_screen_capture(self):
+        """화면 캡쳐 실행"""
+        self.log("📸 화면을 드래그하여 영역을 선택하세요... (ESC: 취소)")
+        
+        # 전체화면 오버레이 생성
+        capture_window = tk.Toplevel(self.root)
+        capture_window.attributes("-fullscreen", True)
+        capture_window.attributes("-alpha", 0.3)
+        capture_window.attributes("-topmost", True)
+        capture_window.configure(bg="black")
+        
+        canvas = tk.Canvas(capture_window, cursor="cross", highlightthickness=0)
+        canvas.pack(fill=tk.BOTH, expand=True)
+        
+        # 드래그 좌표
+        coords = {"start_x": None, "start_y": None, "rect": None}
+        
+        def on_mouse_down(event):
+            coords["start_x"] = event.x
+            coords["start_y"] = event.y
+        
+        def on_mouse_move(event):
+            if coords["start_x"] is not None:
+                if coords["rect"]:
+                    canvas.delete(coords["rect"])
+                coords["rect"] = canvas.create_rectangle(
+                    coords["start_x"], coords["start_y"], event.x, event.y,
+                    outline="red", width=3
+                )
+        
+        def on_mouse_up(event):
+            if coords["start_x"] is None:
+                return
+            
+            # 좌표 정규화
+            x1 = min(coords["start_x"], event.x)
+            y1 = min(coords["start_y"], event.y)
+            x2 = max(coords["start_x"], event.x)
+            y2 = max(coords["start_y"], event.y)
+            
+            # 최소 크기 체크
+            if abs(x2 - x1) < 10 or abs(y2 - y1) < 10:
+                capture_window.destroy()
+                self.log("❌ 영역이 너무 작습니다.")
+                return
+            
+            # 오버레이 닫기
+            capture_window.destroy()
+            
+            # 잠시 대기 (오버레이가 사라지도록)
+            self.root.after(100, lambda: self.capture_area(x1, y1, x2, y2))
+        
+        def on_escape(event):
+            capture_window.destroy()
+            self.log("❌ 캡쳐 취소됨")
+        
+        canvas.bind("<ButtonPress-1>", on_mouse_down)
+        canvas.bind("<B1-Motion>", on_mouse_move)
+        canvas.bind("<ButtonRelease-1>", on_mouse_up)
+        capture_window.bind("<Escape>", on_escape)
+    
+    def capture_area(self, x1, y1, x2, y2):
+        """선택 영역 캡쳐"""
+        try:
+            # 화면 캡쳐
+            screenshot = ImageGrab.grab(bbox=(x1, y1, x2, y2))
+            
+            # 파일명 생성
+            self.capture_count += 1
+            filename = f"capture_{self.capture_count:03d}.png"
+            filepath = Path(self.capture_folder) / filename
+            
+            # 저장
+            screenshot.save(filepath)
+            
+            self.log(f"✅ 캡쳐 완료: {filename}")
+            
+            # 썸네일 새로고침
+            self.refresh_thumbnails()
+            
+            # 계속 캡쳐할지 묻기
+            if messagebox.askyesno("캡쳐 완료", "계속 캡쳐하시겠습니까?"):
+                self.do_screen_capture()
+            
+        except Exception as e:
+            self.log(f"❌ 캡쳐 오류: {str(e)}")
+    
+    def refresh_thumbnails(self):
+        """썸네일 그리드 갱신"""
+        # 기존 썸네일 삭제
+        for widget in self.thumbnail_frame.winfo_children():
+            widget.destroy()
+        
+        if not self.capture_folder:
+            return
+        
+        # 이미지 파일 찾기
+        folder = Path(self.capture_folder)
+        image_files = sorted(
+            list(folder.glob("*.png")) + 
+            list(folder.glob("*.jpg")) + 
+            list(folder.glob("*.jpeg"))
+        )
+        
+        # 개수 업데이트
+        self.capture_count_label.config(text=f"{len(image_files)}개")
+        
+        # 썸네일 생성 (4열 그리드)
+        cols = 4
+        thumb_size = 120
+        
+        for idx, img_path in enumerate(image_files):
+            try:
+                # 썸네일 생성
+                img = Image.open(img_path)
+                img.thumbnail((thumb_size, thumb_size))
+                photo = ImageTk.PhotoImage(img)
+                
+                # 프레임
+                row = idx // cols
+                col = idx % cols
+                
+                item_frame = tk.Frame(self.thumbnail_frame, bg="white", relief=tk.RAISED, bd=1)
+                item_frame.grid(row=row, column=col, padx=5, pady=5)
+                
+                # 이미지
+                img_label = tk.Label(item_frame, image=photo, bg="white")
+                img_label.image = photo  # 참조 유지
+                img_label.pack()
+                
+                # 파일명
+                tk.Label(item_frame, text=img_path.name, bg="white", font=("Arial", 8)).pack()
+                
+            except Exception as e:
+                print(f"썸네일 생성 실패: {img_path.name} - {e}")
         
     def run_ocr(self):
         """OCR 실행 (별도 스레드에서)"""
