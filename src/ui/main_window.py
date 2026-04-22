@@ -109,16 +109,13 @@ class MainWindow(QMainWindow):
                 QMessageBox.warning(self, "오류", "이미지 파일을 로드할 수 없습니다.")
                 
     def paste_from_clipboard(self):
-        """클립보드에서 이미지 붙여넣기"""
-        clipboard = QApplication.clipboard()
-        pixmap = clipboard.pixmap()
-        
-        if not pixmap.isNull():
-            self.image_viewer.set_pixmap(pixmap)
-            self.current_image_path = None
-            self.status_bar.showMessage("클립보드 이미지 붙여넣기 완료")
-        else:
-            QMessageBox.warning(self, "오류", "클립보드에 이미지가 없습니다.")
+        """클립보드에서 이미지 붙여넣기 (일시적 비활성화)"""
+        QMessageBox.information(
+            self, 
+            "알림", 
+            "클립보드 붙여넣기 기능은 현재 DLL 에러로 인해 일시적으로 비활성화되었습니다.\n"
+            "파일 선택 기능을 사용해주세요."
+        )
             
     def run_ocr(self):
         """OCR 실행"""
@@ -128,26 +125,21 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "오류", "이미지를 먼저 로드해주세요.")
             return
         
+        # 이미지 경로가 있는지 확인
+        if not self.current_image_path:
+            QMessageBox.warning(self, "오류", "파일 선택으로 이미지를 로드해주세요.\n(클립보드 붙여넣기는 아직 지원 안 됨)")
+            return
+        
         self.status_bar.showMessage("OCR 처리 중...")
         QApplication.processEvents()
         
         try:
-            # QPixmap → QImage → numpy array 변환 (수정된 부분)
-            import numpy as np
-            from PIL import Image
+            # 파일 경로로 직접 읽기 (간단하고 안정적)
+            import cv2
+            image_array = cv2.imread(self.current_image_path)
             
-            # QPixmap을 QImage로 변환
-            qimage = pixmap.toImage()
-            
-            # QImage를 numpy array로 변환
-            width = qimage.width()
-            height = qimage.height()
-            ptr = qimage.bits()
-            ptr.setsize(height * width * 4)
-            arr = np.frombuffer(ptr, np.uint8).reshape((height, width, 4))
-            
-            # RGBA → RGB 변환
-            image_array = arr[:, :, :3].copy()
+            if image_array is None:
+                raise ValueError("이미지를 읽을 수 없습니다.")
             
             # OCR 엔진 초기화 (첫 실행 시)
             if not hasattr(self, 'ocr_engine'):
@@ -189,7 +181,9 @@ class MainWindow(QMainWindow):
                 self.status_bar.showMessage(f"OCR 완료! {len(results)}개 텍스트 인식됨")
                 
         except Exception as e:
-            QMessageBox.critical(self, "OCR 오류", f"OCR 처리 중 오류 발생:\n{str(e)}")
+            import traceback
+            error_msg = f"OCR 처리 중 오류 발생:\n{str(e)}\n\n{traceback.format_exc()}"
+            QMessageBox.critical(self, "OCR 오류", error_msg)
             self.status_bar.showMessage("OCR 실패")
             
     def display_ocr_results(self, results):
