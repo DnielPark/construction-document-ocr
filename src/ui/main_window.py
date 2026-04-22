@@ -144,10 +144,10 @@ class MainWindow(QMainWindow):
             # OCR 엔진 초기화 (첫 실행 시)
             if not hasattr(self, 'ocr_engine'):
                 from ocr.ocr_engine import OCREngine
-                from config import OCR_LANGUAGES, OCR_GPU
-                self.status_bar.showMessage("OCR 엔진 초기화 중... (최초 1-2분 소요)")
+                from config import CLOVA_API_URL, CLOVA_SECRET_KEY
+                self.status_bar.showMessage("CLOVA OCR 엔진 초기화 중...")
                 QApplication.processEvents()
-                self.ocr_engine = OCREngine(OCR_LANGUAGES, OCR_GPU)
+                self.ocr_engine = OCREngine(CLOVA_API_URL, CLOVA_SECRET_KEY)
             
             self.status_bar.showMessage("OCR 실행 중...")
             QApplication.processEvents()

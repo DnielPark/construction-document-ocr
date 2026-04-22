@@ -17,7 +17,7 @@ import cv2
 
 from ocr.ocr_engine import OCREngine
 from utils.table_parser import TableParser
-from config import OCR_LANGUAGES, OCR_GPU, TABLE_COLUMNS, TABLE_HEADERS
+from config import CLOVA_API_URL, CLOVA_SECRET_KEY, TABLE_COLUMNS, TABLE_HEADERS
 
 
 
@@ -70,8 +70,8 @@ def main():
     print("=" * 60)
     print("CM 현장 문서 OCR - 배치 처리")
     print("=" * 60)
-    print("\n🔧 OCR 엔진 초기화 중... (최초 1-2분 소요)")
-    ocr_engine = OCREngine(OCR_LANGUAGES, OCR_GPU)
+    print("\n🔧 CLOVA OCR 엔진 초기화 중...")
+    ocr_engine = OCREngine(CLOVA_API_URL, CLOVA_SECRET_KEY)
     table_parser = TableParser()
     print("✅ 초기화 완료!\n")
     
