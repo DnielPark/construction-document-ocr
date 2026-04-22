@@ -1,27 +1,25 @@
 # CM 현장 문서 OCR 프로그램
 
 하수관로 공사 수량표를 자동으로 인식하여 Excel 데이터로 변환하는 CLI 프로그램입니다.
+**DeepSeek Vision API**를 사용하여 이미지에서 직접 표 데이터를 추출합니다.
 
 ## 🔑 API 키 발급 (필수)
 
-### 1. 네이버 클라우드 플랫폼 가입
-https://www.ncloud.com
+### 1. DeepSeek 플랫폼 가입
+https://platform.deepseek.com
 
-### 2. CLOVA OCR 신청
-1. 콘솔 로그인
-2. Services → AI·NAVER API → CLOVA OCR
-3. "이용 신청하기" 클릭
-4. 약관 동의 후 신청
+### 2. API 키 발급
+1. 로그인 후 "API Keys" 메뉴
+2. "Create new secret key" 클릭
+3. 키 이름 입력 (예: "현장문서 OCR")
+4. "Create" 클릭 후 키 복사
 
-### 3. API 인증키 발급
-1. CLOVA OCR 콘솔 접속
-2. "Domain" 생성
-3. "Secret Key" 복사
-
-### 4. 비용
-- 월 1,000건 무료
-- 이후 1.1원/건
-- 현장 문서 처리 기준: 월 수백원 수준
+### 3. 비용 (매우 저렴!)
+- **DeepSeek-V3**: $0.27/1M input tokens
+- **이미지 1장**: 약 1,000 tokens = **$0.0003 (약 0.4원)**
+- **CLOVA OCR 대비**: **60배 저렴!**
+- **월 100장 처리**: 약 40원
+- **월 1,000장 처리**: 약 400원
 
 ## 📥 설치
 
@@ -46,8 +44,7 @@ pip install -r requirements.txt
 ### 4. API 키 설정
 `.env` 파일 생성:
 ```bash
-CLOVA_API_URL=https://naveropenapi.apigw.ntruss.com/ocr/v1/general
-CLOVA_SECRET_KEY=여기에_발급받은_시크릿_키_입력
+DEEPSEEK_API_KEY=여기에_DeepSeek_API_키_입력
 ```
 
 ## 🚀 사용법
@@ -93,20 +90,32 @@ python src/main.py
 - 키 형식: 공백 없이 정확히 입력
 - `.env.example` 파일을 `.env`로 복사 후 키 입력
 
-### 인식률 낮음
+### 인식률 문제
 - 이미지 해상도 확인 (300dpi 이상 권장)
-- 스캔 품질 향상
-- CLOVA OCR은 한글 문서에 최적화되어 있음
+- 스캔 품질 향상 (명암 대비, 선명도)
+- DeepSeek Vision은 LLM 기반으로 맥락 이해 가능
 
 ### 네트워크 오류
-- 인터넷 연결 확인
-- 방화벽 설정 확인 (CLOVA API 접근 허용)
+- 인터넷 연결 확인 (DeepSeek API 접속 필요)
+- 방화벽 설정 확인
+- API 키 만료 확인 (DeepSeek 플랫폼에서 재발급)
+
+### 비용 확인
+- DeepSeek 플랫폼에서 사용량 확인 가능
+- 예상보다 비용이 높다면 이미지 전처리 고려
 
 ## 📊 기술 스택
-- **OCR 엔진**: 네이버 CLOVA OCR (한글 최적화)
+- **Vision 엔진**: DeepSeek Vision API (LLM 기반 이미지 이해)
 - **이미지 처리**: OpenCV, Pillow
 - **데이터 처리**: Pandas, Openpyxl
 - **GUI 프레임워크**: PyQt5
+
+## 🎯 DeepSeek Vision 장점
+1. **통합 처리**: OCR + 테이블 파싱 + 데이터 정제 한 번에
+2. **맥락 이해**: "지 반 고" → "지반고" 자동 수정
+3. **구조화 출력**: 바로 JSON으로 깔끔한 데이터
+4. **비용 효율**: CLOVA의 1/60, EasyOCR보다 똑똑함
+5. **오류 보정**: LLM이 오타 자동 수정
 
 ## 📁 프로젝트 구조
 ```
@@ -128,9 +137,14 @@ src/
 
 ## 📅 개발 계획
 - Week 1: 기본 구조 및 UI 구현 ✅
-- Week 2: CLOVA OCR 엔진 통합 ✅
+- Week 2: DeepSeek Vision 엔진 통합 ✅
 - Week 3: 테이블 파싱 알고리즘 ✅
 - Week 4: Excel 내보내기 및 최적화 ⏳
+
+## 🔄 아키텍처 진화
+1. **초기**: EasyOCR (로컬 모델, 낮은 정확도)
+2. **개선**: CLOVA OCR (API, 높은 정확도, 비용 문제)
+3. **최종**: DeepSeek Vision (LLM 기반, 최고 정확도, 최저 비용)
 
 ## 📄 라이선스
 MIT License

@@ -142,43 +142,27 @@ class MainWindow(QMainWindow):
                 raise ValueError("이미지를 읽을 수 없습니다.")
             
             # OCR 엔진 초기화 (첫 실행 시)
-            if not hasattr(self, 'ocr_engine'):
-                from ocr.ocr_engine import OCREngine
-                from config import CLOVA_API_URL, CLOVA_SECRET_KEY
-                self.status_bar.showMessage("CLOVA OCR 엔진 초기화 중...")
+            if not hasattr(self, 'deepseek_engine'):
+                from ocr.deepseek_engine import DeepSeekEngine
+                from config import DEEPSEEK_API_KEY
+                self.status_bar.showMessage("DeepSeek Vision 엔진 초기화 중...")
                 QApplication.processEvents()
-                self.ocr_engine = OCREngine(CLOVA_API_URL, CLOVA_SECRET_KEY)
+                self.deepseek_engine = DeepSeekEngine(DEEPSEEK_API_KEY)
             
-            self.status_bar.showMessage("OCR 실행 중...")
+            self.status_bar.showMessage("DeepSeek Vision으로 표 추출 중...")
             QApplication.processEvents()
             
-            # 선택 영역 확인
-            selection_rect = self.image_viewer.get_selection_rect()
-            
-            if selection_rect:
-                # 선택 영역 OCR
-                rect = (
-                    selection_rect.x(),
-                    selection_rect.y(),
-                    selection_rect.width(),
-                    selection_rect.height()
-                )
-                text = self.ocr_engine.recognize_region(image_array, rect)
+            # DeepSeek Vision으로 표 추출
+            try:
+                table_data = self.deepseek_engine.extract_table_from_array(image_array)
                 
-                # 테이블에 추가
-                if text.strip():
-                    self.data_table.add_row([text] + [""] * (self.data_table.columns - 1))
-                    self.status_bar.showMessage(f"선택 영역 OCR 완료: {text[:50]}...")
-                else:
-                    QMessageBox.information(self, "알림", "선택 영역에서 텍스트를 인식하지 못했습니다.")
-            else:
-                # 전체 이미지 OCR
-                results = self.ocr_engine.recognize_with_coordinates(image_array)
+                # 테이블에 표시
+                self.display_deepseek_results(table_data)
                 
-                # 결과 테이블에 표시
-                self.display_ocr_results(results)
-                
-                self.status_bar.showMessage(f"OCR 완료! {len(results)}개 텍스트 인식됨")
+                self.status_bar.showMessage(f"표 추출 완료! {len(table_data)}개 측점 인식됨")
+            except Exception as e:
+                QMessageBox.critical(self, "표 추출 오류", f"DeepSeek Vision 처리 중 오류 발생:\n{str(e)}")
+                self.status_bar.showMessage("표 추출 실패")
                 
         except Exception as e:
             import traceback
@@ -217,6 +201,27 @@ class MainWindow(QMainWindow):
         self.status_bar.showMessage(
             f"OCR 완료! {len(results)}개 텍스트 인식, {len(aligned_rows)}개 행 파싱됨"
         )
+        
+    def display_deepseek_results(self, table_data):
+        """DeepSeek Vision 결과를 테이블에 표시"""
+        self.data_table.clear_table()
+        
+        for item in table_data:
+            row = []
+            for header in self.data_table.headers:
+                # 헤더와 키 매핑
+                if header in item:
+                    row.append(item[header])
+                else:
+                    # 단위 제거한 키 찾기
+                    key_without_unit = header.split('(')[0] if '(' in header else header
+                    if key_without_unit in item:
+                        row.append(item[key_without_unit])
+                    else:
+                        row.append("0")  # 기본값
+            self.data_table.add_row(row)
+        
+        self.status_bar.showMessage(f"표 추출 완료: {len(table_data)}개 측점")
         
     def save_to_excel(self):
         """Excel로 저장"""

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-CM 현장 문서 OCR - CLI 버전 (배치 처리)
+CM 현장 문서 OCR - CLI 버전 (DeepSeek Vision)
 
 실무 사용법:
  python src/cli.py sample_data/
@@ -13,19 +13,60 @@ import argparse
 import os
 import sys
 from pathlib import Path
-import cv2
+import csv
+import json
 
-from ocr.ocr_engine import OCREngine
-from utils.table_parser import TableParser
-from config import CLOVA_API_URL, CLOVA_SECRET_KEY, TABLE_COLUMNS, TABLE_HEADERS
+from ocr.deepseek_engine import DeepSeekEngine
+from config import DEEPSEEK_API_KEY, TABLE_HEADERS
 
 
+def process_image(image_path, deepseek_engine):
+    """단일 이미지 처리 (DeepSeek Vision)"""
+    print(f"처리 중: {Path(image_path).name}")
+    
+    # DeepSeek Vision으로 표 추출
+    try:
+        print(f" 🔍 DeepSeek Vision으로 표 추출 중...")
+        table_data = deepseek_engine.extract_table(image_path)
+        
+        # JSON 데이터를 CSV 행으로 변환
+        rows = []
+        for item in table_data:
+            row = []
+            for header in TABLE_HEADERS:
+                # 헤더와 키 매핑
+                if header in item:
+                    row.append(item[header])
+                else:
+                    # 단위 제거한 키 찾기 (예: "터파기_A(㎡)" → "터파기_A")
+                    key_without_unit = header.split('(')[0] if '(' in header else header
+                    if key_without_unit in item:
+                        row.append(item[key_without_unit])
+                    else:
+                        row.append("0")  # 기본값
+            rows.append(row)
+        
+        print(f" ✅ {len(rows)}개 측점 추출 완료\n")
+        return rows
+        
+    except Exception as e:
+        print(f" ❌ 오류: {str(e)}\n")
+        return []
 
+
+def save_to_csv(rows, output_path):
+    """CSV 파일로 저장"""
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    
+    with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
+        writer = csv.writer(f)
+        writer.writerow(TABLE_HEADERS)  # 헤더
+        writer.writerows(rows)          # 데이터
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='CM 현장 문서 OCR - 수량표 배치 추출',
+        description='CM 현장 문서 OCR - 수량표 배치 추출 (DeepSeek Vision)',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 사용 예시:
@@ -37,6 +78,11 @@ def main():
  
  # 단일 파일 (테스트용)
  python src/cli.py -f sample_data/sample_001.png
+ 
+ 💰 비용 정보:
+ - DeepSeek-V3: $0.27/1M tokens
+ - 이미지 1장 ≈ 1,000 tokens = $0.0003 (약 0.4원)
+ - CLOVA OCR 대비 60배 저렴!
  """
     )
     
@@ -66,13 +112,12 @@ def main():
         print("\n❌ 오류: 처리할 폴더 또는 파일을 지정하세요.")
         sys.exit(1)
     
-    # OCR 엔진 초기화
+    # DeepSeek Vision 엔진 초기화
     print("=" * 60)
-    print("CM 현장 문서 OCR - 배치 처리")
+    print("CM 현장 문서 OCR - DeepSeek Vision 배치 처리")
     print("=" * 60)
-    print("\n🔧 CLOVA OCR 엔진 초기화 중...")
-    ocr_engine = OCREngine(CLOVA_API_URL, CLOVA_SECRET_KEY)
-    table_parser = TableParser()
+    print("\n🔧 DeepSeek Vision 엔진 초기화 중...")
+    deepseek_engine = DeepSeekEngine(DEEPSEEK_API_KEY)
     print("✅ 초기화 완료!\n")
     
     # 처리할 파일 목록
@@ -104,44 +149,20 @@ def main():
     print("-" * 60)
     success_count = 0
     for img_path in files:
-        print(f"처리 중: {img_path.name}")
-        
-        # 이미지 로드
-        image = cv2.imread(str(img_path))
-        if image is None:
-            print(f" ❌ 오류: 이미지를 읽을 수 없습니다.\n")
-            continue
-        
-        # OCR 실행
-        print(f" 🔍 OCR 실행 중...")
-        results = ocr_engine.recognize_with_coordinates(image)
-        print(f" ✅ {len(results)}개 텍스트 인식됨")
-        
-        # 테이블 파싱
-        table_rows = table_parser.parse_ocr_results(results)
-        aligned_rows = table_parser.align_to_columns(table_rows, TABLE_COLUMNS)
-        print(f" 📊 {len(aligned_rows)}개 행 파싱됨\n")
-        
-        # 전체 리스트에 추가
-        all_rows.extend(aligned_rows)
-        success_count += 1
+        rows = process_image(img_path, deepseek_engine)
+        if rows:
+            all_rows.extend(rows)
+            success_count += 1
     
     # 통합 CSV 저장
     if all_rows:
-        import csv
-        from config import TABLE_HEADERS
-        
         output_path = Path(args.output) / f"{output_name}.csv"
-        os.makedirs(args.output, exist_ok=True)
-        
-        with open(output_path, 'w', newline='', encoding='utf-8-sig') as f:
-            writer = csv.writer(f)
-            writer.writerow(TABLE_HEADERS)
-            writer.writerows(all_rows)
+        save_to_csv(all_rows, output_path)
         
         print("=" * 60)
         print(f"✅ 완료! {success_count}/{len(files)} 파일 처리 성공")
-        print(f"📊 총 {len(all_rows)}개 행 추출")
+        print(f"📊 총 {len(all_rows)}개 측점 추출")
+        print(f"💰 예상 비용: 약 {len(files) * 0.4:.1f}원")
         print(f"💾 저장: {output_path}")
         print("=" * 60)
     else:

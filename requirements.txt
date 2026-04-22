@@ -3,23 +3,20 @@ PyQt5==5.15.9
 PyQt5-Qt5==5.15.2
 PyQt5-sip==12.18.0
 
-# OCR Engine (CLOVA API)
+# Vision API (DeepSeek)
 requests>=2.31.0
 python-dotenv>=1.0.0
 
 # Image Processing
 opencv-python==4.13.0.92
 opencv-python-headless==4.13.0.92
-Pillow==12.2.0
+Pillow>=12.2.0
 numpy==2.4.4
 
 # Data Processing
 pandas==3.0.2
 openpyxl==3.1.5
 python-dateutil==2.9.0.post0
-
-# Utilities
-uuid>=1.30
 
 # Development Tools (optional)
 black>=26.3.1

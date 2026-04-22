@@ -9,26 +9,29 @@ from dotenv import load_dotenv
 # 환경 변수 로드
 load_dotenv()
 
-# CLOVA OCR 설정 (필수)
-CLOVA_API_URL = os.getenv("CLOVA_API_URL")
-CLOVA_SECRET_KEY = os.getenv("CLOVA_SECRET_KEY")
+# DeepSeek Vision API 설정 (필수)
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
 
 # API 키 검증
-if not CLOVA_API_URL or not CLOVA_SECRET_KEY:
+if not DEEPSEEK_API_KEY:
     error_message = """
     ============================================================
-    ❌ CLOVA OCR API 키가 설정되지 않았습니다.
+    ❌ DeepSeek Vision API 키가 설정되지 않았습니다.
     
     📌 API 키 발급 방법:
-    1. 네이버 클라우드 가입: https://www.ncloud.com
-    2. CLOVA OCR 서비스 신청
-    3. API 키 발급 (월 1,000건 무료)
+    1. DeepSeek 플랫폼 가입: https://platform.deepseek.com
+    2. API Keys 메뉴에서 새 키 생성
+    3. API 키 복사
     
     📝 설정 방법:
     .env 파일을 생성하고 다음 내용 입력:
     
-    CLOVA_API_URL=https://naveropenapi.apigw.ntruss.com/ocr/v1/general
-    CLOVA_SECRET_KEY=여기에_발급받은_키_입력
+    DEEPSEEK_API_KEY=여기에_DeepSeek_API_키_입력
+    
+    💰 비용 정보:
+    - DeepSeek-V3: $0.27/1M tokens
+    - 이미지 1장 ≈ 1,000 tokens = $0.0003 (약 0.4원)
+    - CLOVA OCR 대비 60배 저렴!
     
     자세한 내용: README.md 참고
     ============================================================
