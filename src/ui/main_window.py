@@ -129,28 +129,36 @@ class MainWindow(QMainWindow):
             return
         
         self.status_bar.showMessage("OCR 처리 중...")
-        QApplication.processEvents()  # UI 업데이트
+        QApplication.processEvents()
         
         try:
-            # QPixmap → numpy array 변환
-            from PIL import Image
+            # QPixmap → QImage → numpy array 변환 (수정된 부분)
             import numpy as np
-            import io
+            from PIL import Image
             
-            # QPixmap을 바이트로 변환
-            buffer = io.BytesIO()
-            pixmap.save(buffer, "PNG")
-            buffer.seek(0)
+            # QPixmap을 QImage로 변환
+            qimage = pixmap.toImage()
             
-            # PIL Image로 로드
-            pil_image = Image.open(buffer)
-            image_array = np.array(pil_image)
+            # QImage를 numpy array로 변환
+            width = qimage.width()
+            height = qimage.height()
+            ptr = qimage.bits()
+            ptr.setsize(height * width * 4)
+            arr = np.frombuffer(ptr, np.uint8).reshape((height, width, 4))
+            
+            # RGBA → RGB 변환
+            image_array = arr[:, :, :3].copy()
             
             # OCR 엔진 초기화 (첫 실행 시)
             if not hasattr(self, 'ocr_engine'):
                 from ocr.ocr_engine import OCREngine
                 from config import OCR_LANGUAGES, OCR_GPU
+                self.status_bar.showMessage("OCR 엔진 초기화 중... (최초 1-2분 소요)")
+                QApplication.processEvents()
                 self.ocr_engine = OCREngine(OCR_LANGUAGES, OCR_GPU)
+            
+            self.status_bar.showMessage("OCR 실행 중...")
+            QApplication.processEvents()
             
             # 선택 영역 확인
             selection_rect = self.image_viewer.get_selection_rect()
